@@ -56,8 +56,17 @@ public class MessageStoreService {
      * The servletContext.
      */
     @Context
-    ServletContext servletContext;
+    private ServletContext servletContext;
 
+	/**
+	 * 
+	 */
+    private Gson gson = new GsonBuilder().create();
+	
+	/**
+	 * 
+	 */
+	private RedisConnectionHelper redisConnectionHelper = null;
 	
     /**
      * @throws Exception
@@ -69,6 +78,7 @@ public class MessageStoreService {
 
     public void initialize(HttpHeaders httpHeaders, UriInfo uriInfo, ServletContext servletContext) {
     	ApplicationProperties.initialize();
+        redisConnectionHelper = new RedisConnectionHelper();
     }
 	
 	
@@ -85,42 +95,18 @@ public class MessageStoreService {
 	public String storeMessage(String parametersMapJSON) {
 
 		//store the parametersMap in Redis
-		UUID uuid1 = UUID.randomUUID();
-	    System.out.println( uuid1.toString() );
-	    byte[] byteArr = UUIDUtil.convertUUID_To_16ByteArray(uuid1);
-	    String strUUID = UUIDUtil.convert_16ByteArray_To_String(byteArr);
-		String shortId = strUUID; // generate the shortId
-		//String shortUrl = "http://sc.com/" + shortId; // generate the shortUrl
-		
-		//parametersMap.put("SHORTURL", shortUrl);
-		RedisConnectionHelper redisConnectionHelper = new RedisConnectionHelper();
-		redisConnectionHelper.getJedisConnection();
-		Gson gson = new GsonBuilder().create();
 		HashMap<String, String> parametersMap = new HashMap<String, String>();
         LOGGER.info("parametersMapJSON = " + parametersMapJSON);
-		System.out.println("parametersMapJSON = " + parametersMapJSON);
-		parametersMap = gson.fromJson(parametersMapJSON, parametersMap.getClass());
-		parametersMap.put("SHORTID", shortId);
-		parametersMapJSON = gson.toJson(parametersMap);
-				
-		Jedis jedis = null;
-        try {
-            jedis = new RedisConnectionHelper().getJedisConnection();
-            jedis.set(shortId, parametersMapJSON);
-        } finally {
-            if (jedis != null) {
-                jedis.close();
-            }
-        }
+		Jedis jedis = redisConnectionHelper.getJedisConnection();
+		Long shortId = ParamMapSaver.instance.saveParamMap(parametersMapJSON, jedis);
         
         HashMap<String, String> retValue = new HashMap<String, String>();
-        retValue.put("SHORTID", shortId);
+        retValue.put("SHORTID", shortId.toString());
         retValue.put("CODE", "200");
         retValue.put("MESSAGE", "Parameters map stored successfully into Redis DB!");
         LOGGER.info("retValue = " + retValue);
         return gson.toJson(retValue);
 	}
-	
 	
 	@GET
 	@Path("/message/{shortid}")
@@ -139,16 +125,12 @@ public class MessageStoreService {
         try {
             jedis = new RedisConnectionHelper().getJedisConnection();
             parametersMapJSON = jedis.get(shortId);
+            
         } finally {
             if (jedis != null) {
                 jedis.close();
             }
         }
-        
-        /*HashMap<String, String> retValue = new HashMap<String, String>();
-        retValue.put("CODE", "200");
-        retValue.put("MESSAGE", "Parameters map returned successfully!");
-        retValue.put("parameterMap", parametersMapJSON);*/
         
         LOGGER.info("parametersMapJSON = " + parametersMapJSON);
         return gson.toJson(parametersMapJSON);
