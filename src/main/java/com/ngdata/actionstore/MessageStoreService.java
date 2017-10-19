@@ -9,6 +9,7 @@ package com.ngdata.actionstore;
  * </ul>
  */
 import java.util.HashMap;
+import java.util.UUID;
 import java.util.logging.Logger;
 
 import javax.servlet.ServletContainerInitializer;
@@ -84,7 +85,11 @@ public class MessageStoreService {
 	public String storeMessage(String parametersMapJSON) {
 
 		//store the parametersMap in Redis
-		String shortId = "43734"; // generate the shortId
+		UUID uuid1 = UUID.randomUUID();
+	    System.out.println( uuid1.toString() );
+	    byte[] byteArr = UUIDUtil.convertUUID_To_16ByteArray(uuid1);
+	    String strUUID = UUIDUtil.convert_16ByteArray_To_String(byteArr);
+		String shortId = strUUID; // generate the shortId
 		//String shortUrl = "http://sc.com/" + shortId; // generate the shortUrl
 		
 		//parametersMap.put("SHORTURL", shortUrl);
@@ -109,6 +114,7 @@ public class MessageStoreService {
         }
         
         HashMap<String, String> retValue = new HashMap<String, String>();
+        retValue.put("SHORTID", shortId);
         retValue.put("CODE", "200");
         retValue.put("MESSAGE", "Parameters map stored successfully into Redis DB!");
         LOGGER.info("retValue = " + retValue);
