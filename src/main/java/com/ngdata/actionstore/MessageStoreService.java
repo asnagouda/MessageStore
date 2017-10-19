@@ -100,8 +100,10 @@ public class MessageStoreService {
 		Jedis jedis = redisConnectionHelper.getJedisConnection();
 		Long shortId = ParamMapSaver.instance.saveParamMap(parametersMapJSON, jedis);
         
+		
         HashMap<String, String> retValue = new HashMap<String, String>();
-        retValue.put("SHORTID", shortId.toString());
+        //retValue.put("SHORTID", shortId.toString());
+        retValue.put("SHORTID", Long.toHexString(shortId));
         retValue.put("CODE", "200");
         retValue.put("MESSAGE", "Parameters map stored successfully into Redis DB!");
         LOGGER.info("retValue = " + retValue);
